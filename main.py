@@ -34,9 +34,8 @@ def main():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-    question = st.chat_input(
-        "Pergunte algo sobre a coletanea corrgepom 2015 CL 2 edição:"
-    )
+
+    question = st.chat_input("Pergunte algo sobre a coletanea corrgepom 2015 CL 2 edição:")
     if question:
         st.session_state.messages.append({"role": "user", "content": question})
 
@@ -45,25 +44,28 @@ def main():
 
         with st.spinner("Processando a resposta..."):
             thread = GetAnswer.create_thread(st.secrets['MESSAGE_FILE_ID'], question)
-            response = GetAnswer.get_answer_with_assistant(thread.id, st.secrets['ASSISTANT_ID'])
 
-            if not response:
-                time.sleep(3)
-                message_placeholder.error("Erro ao gerar resposta.")
-                time.sleep(3)
-                message_placeholder.empty()
+            if not thread:
+                message_placeholder.error("Erro ao criar thread.")
                 st.stop()
-            else:
-                time.sleep(3)
-                message_placeholder.success("Resposta gerada com sucesso!")
-                time.sleep(3)
-                message_placeholder.empty()
-                st.session_state.alert = True
 
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            try:
+                response = GetAnswer.get_answer_with_assistant(thread.id, st.secrets['ASSISTANT_ID'])
 
-        with st.chat_message("assistant"):
-            st.markdown(response)
+                if not response:
+                    message_placeholder.error("Erro ao gerar resposta.")
+                    st.stop()
+                else:
+                    message_placeholder.success("Resposta gerada com sucesso!")
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+
+                    with st.chat_message("assistant"):
+                        st.markdown(response)
+            except AttributeError as e:
+                logging.error(f"Erro ao acessar thread.id: {e}")
+                message_placeholder.error("Erro ao processar a thread.")
+                st.stop()
+
 
     if st.session_state.alert:
         message_alert()
